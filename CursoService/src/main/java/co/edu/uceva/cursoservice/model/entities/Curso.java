@@ -27,10 +27,11 @@ public class Curso {
     private String modalidad;
     private Byte numeroCreditos;
     private Integer duracion;
+    private Byte cuposDisponibles;
     private LocalDate fechaCreacion;
     private String horario;
     private boolean activo;
-    private Byte cuposDisponibles;
+
 
 
 }
