@@ -9,6 +9,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Entity
 @Getter
 @Setter
@@ -20,7 +22,15 @@ public class Curso {
     private long id;
     private String nombre;
     private String descripcion;
-    private long id_profesor;
+    private long idDocente;
+    private long idSemestre;
+    private String modalidad;
+    private Byte numeroCreditos;
+    private Integer duracion;
+    private LocalDate fechaCreacion;
     private String horario;
+    private boolean activo;
+    private Byte cuposDisponibles;
+
 
 }
