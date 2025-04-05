@@ -2,12 +2,14 @@ package co.edu.uceva.cursoservice.controllers;
 
 import co.edu.uceva.cursoservice.model.entities.Curso;
 import co.edu.uceva.cursoservice.model.services.ICursoService;
+import jakarta.validation.Valid;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -86,11 +88,21 @@ public class CursoRestController {
     }
 
     /**
-     * Crear un nuevo curso pasando el objeto en el cuerpo de la petición.
+     * Crear un nuevo curso pasando el objeto en el cuerpo de la petición, usando validaciones
      */
     @PostMapping("/cursos")
-    public ResponseEntity<Map<String, Object>> save(@RequestBody Curso curso) {
+    public ResponseEntity<Map<String, Object>> save(@Valid @RequestBody Curso curso, BindingResult result) {
         Map<String, Object> response = new HashMap<>();
+
+        if (result.hasErrors()) {
+            List<String> errors = result.getFieldErrors()
+                    .stream()
+                    .map(err -> "El campo '" + err.getField() + "' " + err.getDefaultMessage())
+                    .toList();
+
+            response.put("errors", errors);
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
 
         try {
             // Guardar el curso en la base de datos
@@ -136,8 +148,18 @@ public class CursoRestController {
      * @param curso: Objeto Curso que se va a actualizar
      */
     @PutMapping("/cursos")
-    public ResponseEntity<Map<String, Object>> update(@RequestBody Curso curso) {
+    public ResponseEntity<Map<String, Object>> update(@Valid @RequestBody Curso curso, BindingResult result) {
         Map<String, Object> response = new HashMap<>();
+
+        if (result.hasErrors()) {
+            List<String> errors = result.getFieldErrors()
+                    .stream()
+                    .map(err -> "El campo '" + err.getField() + "' " + err.getDefaultMessage())
+                    .toList();
+
+            response.put("errors", errors);
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
 
         try {
             // Verificar si el curso existe antes de actualizar
