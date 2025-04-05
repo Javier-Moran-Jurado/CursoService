@@ -1,9 +1,12 @@
 package co.edu.uceva.cursoservice.delivery.rest;
 
+import co.edu.uceva.cursoservice.domain.exception.NoHayCursosException;
+import co.edu.uceva.cursoservice.domain.exception.PaginaSinCursosException;
+import co.edu.uceva.cursoservice.domain.exception.CursoNoEncontradoException;
+import co.edu.uceva.cursoservice.domain.exception.ValidationException;
 import co.edu.uceva.cursoservice.domain.model.Curso;
 import co.edu.uceva.cursoservice.domain.service.ICursoService;
 import jakarta.validation.Valid;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +26,7 @@ public class CursoRestController {
     // Declaramos como final el servicio para mejorar la inmutabilidad
     private final ICursoService cursoService;
 
-    private static final String ERROR = "error";
+    // Constantes para los mensajes de respuesta
     private static final String MENSAJE = "mensaje";
     private static final String CURSO = "curso";
     private static final String CURSOS = "cursos";
@@ -38,25 +41,13 @@ public class CursoRestController {
      */
     @GetMapping("/cursos")
     public ResponseEntity<Map<String, Object>> getCursos() {
-        Map<String, Object> response = new HashMap<>();
-
-        try {
-            List<Curso> cursos = cursoService.findAll();
-
-            if (cursos.isEmpty()) {
-                response.put(MENSAJE, "No hay cursos en la base de datos.");
-                response.put(CURSOS, cursos); // para que sea siempre el mismo campo
-                return ResponseEntity.status(HttpStatus.OK).body(response); // 200 pero lista vacía
-            }
-
-            response.put(CURSOS, cursos);
-            return ResponseEntity.ok(response);
-
-        } catch (DataAccessException e) {
-            response.put(MENSAJE, "Error al consultar la base de datos.");
-            response.put(ERROR, e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        List<Curso> cursos = cursoService.findAll();
+        if (cursos.isEmpty()) {
+            throw new NoHayCursosException();
         }
+        Map<String, Object> response = new HashMap<>();
+        response.put(CURSOS, cursos);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -64,27 +55,12 @@ public class CursoRestController {
      */
     @GetMapping("/curso/page/{page}")
     public ResponseEntity<Object> index(@PathVariable Integer page) {
-        Map<String, Object> response = new HashMap<>();
         Pageable pageable = PageRequest.of(page, 4);
-
-        try {
-            Page<Curso> cursos = cursoService.findAll(pageable);
-
-            if (cursos.isEmpty()) {
-                response.put(MENSAJE, "No hay cursos en la página solicitada.");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
-
-            return ResponseEntity.ok(cursos);
-
-        } catch (DataAccessException e) {
-            response.put(MENSAJE, "Error al consultar la base de datos.");
-            response.put(ERROR, e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        } catch (IllegalArgumentException e) {
-            response.put(MENSAJE, "Número de página inválido.");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        Page<Curso> cursos = cursoService.findAll(pageable);
+        if (cursos.isEmpty()) {
+            throw new PaginaSinCursosException(page);
         }
+        return ResponseEntity.ok(cursos);
     }
 
     /**
@@ -92,31 +68,14 @@ public class CursoRestController {
      */
     @PostMapping("/cursos")
     public ResponseEntity<Map<String, Object>> save(@Valid @RequestBody Curso curso, BindingResult result) {
-        Map<String, Object> response = new HashMap<>();
-
         if (result.hasErrors()) {
-            List<String> errors = result.getFieldErrors()
-                    .stream()
-                    .map(err -> "El campo '" + err.getField() + "' " + err.getDefaultMessage())
-                    .toList();
-
-            response.put("errors", errors);
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+            throw new ValidationException(result);
         }
-
-        try {
-            // Guardar el curso en la base de datos
-            Curso nuevoCurso = cursoService.save(curso);
-
-            response.put(MENSAJE, "El curso ha sido creado con éxito!");
-            response.put(CURSO, nuevoCurso);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
-        } catch (DataAccessException e) {
-            response.put(MENSAJE, "Error al insertar el curso en la base de datos.");
-            response.put(ERROR, e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        Map<String, Object> response = new HashMap<>();
+        Curso nuevoCurso = cursoService.save(curso);
+        response.put(MENSAJE, "El curso ha sido creado con éxito!");
+        response.put(CURSO, nuevoCurso);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
 
@@ -125,22 +84,13 @@ public class CursoRestController {
      */
     @DeleteMapping("/cursos")
     public ResponseEntity<Map<String, Object>> delete(@RequestBody Curso curso) {
+        cursoService.findById(curso.getId())
+                .orElseThrow(() -> new CursoNoEncontradoException(curso.getId()));
+        cursoService.delete(curso);
         Map<String, Object> response = new HashMap<>();
-        try {
-            Curso cursoExistente = cursoService.findById(curso.getId());
-            if (cursoExistente == null) {
-                response.put(MENSAJE, "El curso ID: " + curso.getId() + " no existe en la base de datos.");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
-
-            cursoService.delete(curso);
-            response.put(MENSAJE, "El curso ha sido eliminado con éxito!");
-            return ResponseEntity.ok(response);
-        } catch (DataAccessException e) {
-            response.put(MENSAJE, "Error al eliminar el curso de la base de datos.");
-            response.put(ERROR, e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        response.put(MENSAJE, "El curso ha sido eliminado con éxito!");
+        response.put(CURSO, null);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -149,37 +99,16 @@ public class CursoRestController {
      */
     @PutMapping("/cursos")
     public ResponseEntity<Map<String, Object>> update(@Valid @RequestBody Curso curso, BindingResult result) {
-        Map<String, Object> response = new HashMap<>();
-
         if (result.hasErrors()) {
-            List<String> errors = result.getFieldErrors()
-                    .stream()
-                    .map(err -> "El campo '" + err.getField() + "' " + err.getDefaultMessage())
-                    .toList();
-
-            response.put("errors", errors);
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+            throw new ValidationException(result);
         }
-
-        try {
-            // Verificar si el curso existe antes de actualizar
-            if (cursoService.findById(curso.getId()) == null) {
-                response.put(MENSAJE, "Error: No se pudo editar, el curso ID: " + curso.getId() + " no existe en la base de datos.");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
-
-            // Guardar directamente el curso actualizado en la base de datos
-            Curso cursoActualizado = cursoService.save(curso);
-
-            response.put(MENSAJE, "El curso ha sido actualizado con éxito!");
-            response.put(CURSO, cursoActualizado);
-            return ResponseEntity.ok(response);
-
-        } catch (DataAccessException e) {
-            response.put(MENSAJE, "Error al actualizar el curso en la base de datos.");
-            response.put(ERROR, e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        cursoService.findById(curso.getId())
+                .orElseThrow(() -> new CursoNoEncontradoException(curso.getId()));
+        Map<String, Object> response = new HashMap<>();
+        Curso cursoActualizado = cursoService.update(curso);
+        response.put(MENSAJE, "El curso ha sido actualizado con éxito!");
+        response.put(CURSO, cursoActualizado);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -187,25 +116,11 @@ public class CursoRestController {
      */
     @GetMapping("/cursos/{id}")
     public ResponseEntity<Map<String, Object>> findById(@PathVariable Long id) {
+        Curso curso = cursoService.findById(id)
+                .orElseThrow(() -> new CursoNoEncontradoException(id));
         Map<String, Object> response = new HashMap<>();
-
-        try {
-            Curso curso = cursoService.findById(id);
-
-            if (curso == null) {
-                response.put(MENSAJE, "El curso ID: " + id + " no existe en la base de datos.");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
-
-            response.put(MENSAJE, "El curso ha sido actualizado con éxito!");
-            response.put(CURSO, curso);
-            return ResponseEntity.ok(response);
-
-        } catch (DataAccessException e) {
-            response.put(MENSAJE, "Error al consultar la base de datos.");
-            response.put(ERROR, e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        response.put(MENSAJE, "El curso ha sido encontrado con éxito!");
+        response.put(CURSO, curso);
+        return ResponseEntity.ok(response);
     }
-
 }

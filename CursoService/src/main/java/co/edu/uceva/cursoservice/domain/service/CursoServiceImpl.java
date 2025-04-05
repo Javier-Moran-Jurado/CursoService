@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+
 @Service
 public class CursoServiceImpl implements ICursoService {
 
@@ -31,8 +33,8 @@ public class CursoServiceImpl implements ICursoService {
 
     @Override
     @Transactional
-    public Curso findById(Long id) {
-        return cursoRepository.findById(id).orElse(null);
+    public Optional<Curso> findById(Long id) {
+        return cursoRepository.findById(id);
     }
 
     @Override
