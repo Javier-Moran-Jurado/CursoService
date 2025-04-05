@@ -1,4 +1,4 @@
-package co.edu.uceva.cursoservice.model.entities.services;
+package co.edu.uceva.cursoservice.model.services;
 
 import co.edu.uceva.cursoservice.model.entities.Curso;
 import org.springframework.data.domain.Page;

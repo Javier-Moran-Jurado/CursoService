@@ -1,8 +1,10 @@
-package co.edu.uceva.cursoservice.model.entities.services;
+package co.edu.uceva.cursoservice.model.services;
 
 import co.edu.uceva.cursoservice.model.entities.Curso;
-import co.edu.uceva.cursoservice.model.entities.repositories.ICursoRepository;
+import co.edu.uceva.cursoservice.model.repositories.ICursoRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,19 +30,27 @@ public class CursoServiceImpl implements ICursoService {
     }
 
     @Override
-
+    @Transactional
     public Curso findById(Long id) {
         return cursoRepository.findById(id).orElse(null);
     }
 
     @Override
+    @Transactional
     public Curso update(Curso curso) {
         return cursoRepository.save(curso);
     }
 
     @Override
+    @Transactional
     public List<Curso> findAll() {
         return (List<Curso>) cursoRepository.findAll();
+    }
+
+    @Override
+    @Transactional
+    public Page<Curso> findAll(Pageable pageable) {
+        return cursoRepository.findAll(pageable);
     }
 }
 
