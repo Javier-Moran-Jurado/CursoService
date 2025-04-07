@@ -1,9 +1,0 @@
-package co.edu.uceva.cursoservice.model.entities.repositories;
-
-import co.edu.uceva.cursoservice.model.entities.Curso;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface ICursoRepository extends JpaRepository<Curso, Long> {
-
-
-}
