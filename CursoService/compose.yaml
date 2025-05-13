@@ -23,9 +23,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: curso_springboot
-      POSTGRES_USER: userdb
-      POSTGRES_PASSWORD: passdb
+      - POSTGRES_DB=curso_springboot
+      - POSTGRES_USER=userdb
+      - POSTGRES_PASSWORD=passdb
     volumes:
       - ./data:/var/lib/postgresql/data
     networks:
