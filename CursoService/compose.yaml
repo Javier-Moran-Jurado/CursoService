@@ -1,10 +1,11 @@
 services:
-  cursoservice:
+  curso-service:
     image: javier200521/cursoservice:latest
-    container_name: cursoservice
+    container_name: curso-service
     restart: unless-stopped
     depends_on:
       - db
+      - eureka-server
     ports:
       - "8080:8080"
       - "8081:8081"
@@ -13,6 +14,58 @@ services:
       - DB_PASS=passdb
       - JPA_DDL=create-drop
       - DB_HOST=jdbc:postgresql://db:5432/curso_springboot
+      - EUREKA_HOST=eureka-server
+      - TARGET_HOST_1=http://usuario-service:8082
+      - TARGET_HOST_2=http://semestre-service:8084
+    networks:
+      - mynetwork
+
+  usuario-service:
+    image:    andresguevara03/usuarioservice:latest
+    container_name: usuarioservice
+    restart: unless-stopped
+    depends_on:
+      - db
+      - eureka-server
+    ports:
+      - "8082:8082"
+      - "8083:8081"
+    environment:
+      - DB_USER=userdb
+      - DB_PASS=passdb
+      - JPA_DDL=create-drop
+      - DB_HOST=jdbc:postgresql://db:5432/curso_springboot
+      - PORT=8082
+      - EUREKA_HOST=eureka-server
+    networks:
+      - mynetwork
+
+  semestre-service:
+    image: andresguevara03/semestreservice:latest
+    container_name: facultad-service
+    restart: unless-stopped
+    depends_on:
+      - db
+      - eureka-server
+    ports:
+      - "8084:8080"
+      - "8085:8081"
+    environment:
+      - DB_USER=userdb
+      - DB_PASS=passdb
+      - JPA_DLL=create-drop
+      - DB_HOST=jdbc:postgresql://db:5432/curso_springboot
+      - PORT=8084
+      - EUREKA_HOST=eureka-server
+    networks:
+      - mynetwork
+
+  eureka-server:
+    image:    andresguevara03/eurekaserver:latest
+    container_name: eurekaserver
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
     networks:
       - mynetwork
 
@@ -23,9 +76,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: curso_springboot
-      POSTGRES_USER: userdb
-      POSTGRES_PASSWORD: passdb
+      - POSTGRES_DB=curso_springboot
+      - POSTGRES_USER=userdb
+      - POSTGRES_PASSWORD=passdb
     volumes:
       - ./data:/var/lib/postgresql/data
     networks:

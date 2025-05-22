@@ -1,11 +1,13 @@
 package co.edu.uceva.cursoservice.delivery.rest;
 
-import co.edu.uceva.cursoservice.domain.exception.NoHayCursosException;
-import co.edu.uceva.cursoservice.domain.exception.PaginaSinCursosException;
-import co.edu.uceva.cursoservice.domain.exception.CursoNoEncontradoException;
-import co.edu.uceva.cursoservice.domain.exception.ValidationException;
+import co.edu.uceva.cursoservice.domain.exception.*;
 import co.edu.uceva.cursoservice.domain.model.Curso;
+import co.edu.uceva.cursoservice.domain.model.UsuarioDTO;
 import co.edu.uceva.cursoservice.domain.service.ICursoService;
+import co.edu.uceva.cursoservice.domain.service.ISemestreClient;
+import co.edu.uceva.cursoservice.domain.service.IUsuarioClient;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,15 +28,20 @@ public class CursoRestController {
 
     // Declaramos como final el servicio para mejorar la inmutabilidad
     private final ICursoService cursoService;
+    private final IUsuarioClient usuarioService;
+    private final ISemestreClient semestreService;
 
     // Constantes para los mensajes de respuesta
     private static final String MENSAJE = "mensaje";
     private static final String CURSO = "curso";
     private static final String CURSOS = "cursos";
+    private static final String USUARIOS = "usuarios";
 
     // Inyección de dependencia del servicio que proporciona servicios de CRUD
-    public CursoRestController(ICursoService cursoService) {
+    public CursoRestController(ICursoService cursoService, IUsuarioClient usuarioService, ISemestreClient semestreService) {
         this.cursoService = cursoService;
+        this.usuarioService = usuarioService;
+        this.semestreService = semestreService;
     }
 
     /**
@@ -48,6 +56,31 @@ public class CursoRestController {
         Map<String, Object> response = new HashMap<>();
         response.put(CURSOS, cursos);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/docentes")
+    public ResponseEntity<Map<String, Object>> getDocentes() {
+        ObjectMapper mapper = new ObjectMapper();
+        //https://stackoverflow.com/questions/28821715/java-lang-classcastexception-java-util-linkedhashmap-cannot-be-cast-to-com-test
+        List<UsuarioDTO> usuarios = mapper.convertValue(usuarioService.getUsuarios().getBody().get(USUARIOS), new TypeReference<List<UsuarioDTO>>(){});
+        List<UsuarioDTO> docentes = new ArrayList<>();
+        Map<String, Object> response = new HashMap<>();
+
+        for(UsuarioDTO usuario : usuarios) {
+            if(usuario.getRol().equals("Coordinador") || usuario.getRol().equals("Docente") || usuario.getRol().equals("Decano")) {
+                docentes.add(usuario);
+            }
+        }
+        if (docentes.isEmpty()) {
+            throw new NoHayDocentesException();
+        }
+        response.put(USUARIOS, docentes);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/semestres")
+    public ResponseEntity<Map<String, Object>> getSemestre() {
+        return semestreService.getSemestre();
     }
 
     /**
