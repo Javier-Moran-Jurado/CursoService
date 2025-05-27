@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.Map;
 
-@FeignClient(name = "usuarioservice")
+@FeignClient(name = "usuarioservice", url = "http://mewings.joptionpane.software")
 public interface IUsuarioClient {
     @GetMapping("api/v1/usuario-service/usuarios")
     ResponseEntity<Map<String, Object>> getUsuarios();

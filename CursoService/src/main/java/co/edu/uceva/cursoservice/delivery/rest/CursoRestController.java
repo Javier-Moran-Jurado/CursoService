@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
+@CrossOrigin
 @RequestMapping("/api/v1/curso-service")
 public class CursoRestController {
 
